@@ -125,30 +125,43 @@ Const
 #define EVENT_REACHED 97
 #define EVENT_NULL 98
 
-
-typedef struct
+class MODULE
 {
+public: 
+	MODULE(); 
+	~MODULE(); 
+	void setId(int32_t _id); 
+	void setStatusCode(uint8_t _statusCode); 
+	void setErrorCode(uint8_t _errorCode); 
+	void setMode(uint8_t _mode); 
+	void updatePos(float _pos);
+	void updateVel(float _vel);
+	void updateAcc(float _acc);
+	void updateCur(float _cur);
+
+	int32_t	getId(); 
+	uint8_t getStatusCode(); 
+	uint8_t	getErrorCode(); 
+	uint8_t	getMode();    // mode: para. in CMD_GET_STATE
+
+	bool checkReferenced();
+	bool checkMoving(); 
+	bool checkError(); 
+	bool checkBrake(); 
+	bool checkMoveEnd(); 
+	bool checkPosReached(); 
+
+private:
 	int32_t	id;				
-	uint8_t	status;			// Byte of state 8-bit 
+	uint8_t	statusCode;		// Byte of status 8-bit 
 	uint8_t	errorCode;		// Byte of error type
-	uint8_t	getStateMode;
-	
-	bool	referenced;     // status: 0x01 
-	bool	moving;			// status: 0x02
-	bool	error;			// status: 0x10
-	bool	brake;			// status: 0x20
-	bool	moveEnd;		// status: 0x40
-	bool	posReached;		// status: 0x80
-	bool	progMode;		// status: 0x04
-	bool	warning;		// status: 0x08
+	uint8_t	mode;
 
-		
-	float	position;		
-	float	velocity;		
-	float	current;
-	int		mEvent;			// EVENT_REACHED(97); EVENT_NULL(98)
-
-} MODULE;
+	float	pos;		
+	float	vel;		
+	float	cur;
+	float	acc; 		
+} 
 
 class KERNEL
 {
