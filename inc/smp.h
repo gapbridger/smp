@@ -3,235 +3,194 @@
 #include <process.h>
 #include <iostream>
 #include <vector>
-#include "MODULE.h"
-using namespace std; 
+#include "Module.h"
 
-/*******************
-CMD Code List
-********************/
-#define _CMD_STOP					0x91
-#define _CMD_EMERGENCY_STOP			0x90
-#define _CMD_REFERENCE				0x92
-#define _CMD_REFERENCE_HAND			0x97
-#define _MOV_END					0x93
-#define _POS_REACHED				0x94
-#define _GET_STATE					0x95
+// command code list
 
-#define _SET_CONFIG					0x81
-#define _GET_CONFIG					0x80
-#define _CMD_ERROR					0x88
-#define _CMD_WARNING				0x89
-#define _CMD_INFO					0x8A
-#define _CMD_ACK					0x8B
-#define _GET_DETAILED_ERROR_INFO	0x96
+const uint8_t kStop = 0x91;
+const uint8_t kEmergencyStop = 0x90;
+const uint8_t kReference = 0x92;
+const uint8_t kReferenceHand = 0x97;
+const uint8_t kMoveEnd = 0x93;
+const uint8_t kPositionReached = 0x94;
+const uint8_t kGetState = 0x95;
+const uint8_t kGetDetailedErrorInfo = 0x96;
+const uint8_t kSetConfig = 0x81;
+const uint8_t kGetConfig = 0x80;
+const uint8_t kCommandError = 0x88;
+const uint8_t kCommandWarning = 0x89;
+const uint8_t kCommandInfo = 0x8A;
+const uint8_t kCommandAcknowledge = 0x8B;
+const uint8_t kMovePosition = 0xB0;
+const uint8_t kMovePositionTime = 0xB1;
+const uint8_t kMoveCurrent = 0xB3;
+const uint8_t kMoveVelocity = 0xB5;
+const uint8_t kMoveGrip = 0xB7;
+const uint8_t kMovePositionRelative = 0xB8;
+const uint8_t kMovePositionTimeRelative = 0xB9;
+const uint8_t kMovePositionLoop = 0xBA;
+const uint8_t kMovePositionTimeLoop = 0xBB;
+const uint8_t kMovePositionRelativeLoop = 0xBC;
+const uint8_t kMovePositionTimeRelativeLoop = 0xBD;
+const uint8_t kSetTargetVelocity = 0xA0;
+const uint8_t kSetTargetAcceleration = 0xA1;
+const uint8_t kSetTargetJerk = 0xA2;
+const uint8_t kSetTargetCurrent = 0xA3;
+const uint8_t kSetTargetTime = 0xA4;
+const uint8_t kSetTargetPosition = 0xA6; // cmd in new version  
+const uint8_t kSetTargetPositionRelative = 0xA7; // cmd in new version
+const uint8_t kFragmentBegin = 0x84;
+const uint8_t kFragmentMiddle = 0x85; 
+const uint8_t kFragmentEnd = 0x86;
 
-#define	_MOV_POS					0xB0
-#define	_MOV_POS_REL				0xB8
-#define _MOV_POS_TIME				0xB1
-#define _MOV_POS_TIME_REL			0xB9
+// error code list
 
-#define _MOV_CUR					0xB3
-#define	_MOV_VEL					0xB5
-#define	_MOV_GRIP					0xB7
+const uint8_t kInfoBoot = 0x01;
+const uint8_t kInfoNoRights = 0x03;
+const uint8_t kUnknownCommand = 0x04;
+const uint8_t kInfoFailed = 0x05;
+const uint8_t kInfoNotReferenced = 0x06;
+const uint8_t kInfoSearchSineVector = 0x07; // 0x0007
+const uint8_t kInfoNoErrors = 0x08; // 0x0008
+const uint8_t kCommunicatonError = 0x09;
+const uint8_t kInfoTimeOuti = 0x10;
+const uint8_t kInfoWrongBaudRate = 0x16;  
+const uint8_t kInfoCheckSum = 0x19;
+const uint8_t kInfoMessageLength = 0x1D;
+const uint8_t kInfoWrongParameter = 0x1E;
+const uint8_t kErrorWrongRampType = 0xC8;
+const uint8_t kErrorConfigMemory = 0xD2;
+const uint8_t kErrorProgramMemory = 0xD3;
+const uint8_t kErrorInvalidPhrase = 0xD4;
+const uint8_t kErrorSoftLow = 0xD5;
+const uint8_t kErrorSoftHigh = 0xD6;
+const uint8_t kErrorPressue = 0xD7;
+const uint8_t kErrorService = 0xD8;
+const uint8_t kErrorEmergencyStop = 0xD9;
+const uint8_t kErrorTow = 0xDA; //  common 
+const uint8_t kErrorTooFast = 0xE4;
+const uint8_t kErrorVPC3 = 0xDB;
+const uint8_t kErrorFragmentation = 0xDC;
+const uint8_t kErrorCommunication = 0xDD;   
+const uint8_t kErrorCurrent = 0xDE;
+const uint8_t kErrorI2T = 0xDF;
+const uint8_t kErrorInitialize = 0xE0;
+const uint8_t kErrorInternal = 0xE1;
+const uint8_t kErrorTempLow = 0x70;
+const uint8_t kErrorTempHigh = 0x71;
+const uint8_t kErrorLogicLow = 0x72;
+const uint8_t kErrorLogicHigh = 0x73;
+const uint8_t kErrorMotorVoltageLow = 0x74;
+const uint8_t kErrorMotorVoltageHigh = 0x75;
+const uint8_t kErrorCableBreak = 0x76; // common 
+const uint8_t kInfoFreeSpace = 0x02;
+const uint8_t kInfoProgramEnd = 0x1F;
+const uint8_t kInfoTrigger = 0x40;
+const uint8_t kInfoReady = 0x41;   
+const uint8_t kInfoGUIConnected = 0x42;
+const uint8_t kInfoGUIDisconnected = 0x43;
+const uint8_t kInfoProgram = 0x44;
+const uint8_t kErrorMotorTemperature = 0x78;
+const uint8_t kErrorHardLow = 0xE2;
+const uint8_t kErrorHardHigh = 0xE3;
+const uint8_t kErrorMath = 0xEC;
+const uint8_t kErrorOverShoot = 0x82;
+const uint8_t kErrorResolverCheckFailed = 0xEB;
+const uint8_t kInfoUnknownAxisIndex = 0x11;
+const uint8_t kErrorHardwareVersion = 0x83;
 
-#define _MOV_POS_LOOP				0xBA
-#define _MOV_POS_TIME_LOOP			0xBB
-#define _MOV_POS_REL_LOOP			0xBC
-#define _MOV_POS_TIME_REL_LOOP		0xBD
+// other constant
 
-#define _SET_TARGET_VEL				0xA0
-#define _SET_TARGET_ACC				0xA1
-#define _SET_TARGET_JER				0xA2
-#define _SET_TARGET_CUR				0xA3
-#define _SET_TARGET_TIME			0xA4
-#define _SET_TARGET_POS				0xA6	// cmd in new version  
-#define _SET_TARGET_POS_REL			0xA7	// cmd in new version
-
-#define _FRAG_BEGIN					0x84
-#define _FRAG_MIDDLE				0x85
-#define _FRAG_END					0x86
-
-/*********************
-Error Codes List
-**********************/
-#define INFO_BOOT					0x01		// 0x0001
-#define	INFO_NO_RIGHTS				0x03		
-#define	INFO_UNKNOWN_COMMAND		0x04		
-#define INFO_FAILED					0x05		
-#define	INFO_NOT_REFERENCED			0x06		 
-#define INFO_SEARCH_SINE_VECTOR		0x07		// 0x0007
-#define	INFO_NO_ERRORS				0x08		// 0x0008
-#define INFO_COMMUNICATE_ERROR		0x09		
-#define INFO_TIMEOUT				0x10		
-#define INFO_WRONG_BAUDRATE			0x16		
-#define	INFO_CHECKSUM				0x19		
-#define INFO_MESSAGE_LENGTH			0x1D		
-#define INFO_WRONG_PARAMETER		0x1E		
-#define ERROR_WRONG_RAMP_TYPE		0xC8    
-#define ERROR_CONFIG_MEMORY			0xD2	
-#define ERROR_PROGRAM_MEMORY		0xD3    
-#define ERROR_INVALID_PHRASE		0xD4      
-#define ERROR_SOFT_LOW				0xD5    
-#define ERROR_SOFT_HIGH				0xD6	
-#define ERROR_PRESSURE				0xD7
-#define ERROR_SERVICE				0xD8    
-#define ERROR_EMERGENCY_STOP		0xD9    
-#define ERROR_TOW					0xDA		//  common 
-#define ERROR_TOO_FAST				0xE4    
-#define ERROR_VPC3					0xDB  
-#define ERROR_FRAGMENTATION			0xDC   
-#define ERROR_COMMUTATION			0xDD   
-#define ERROR_CURRENT				0xDE    
-#define	ERROR_I2T					0xDF    
-#define ERROR_INITIALIZE			0xE0    
-#define ERROR_INTERNAL				0xE1   
-#define ERROR_TEMP_LOW				0x70   
-#define ERROR_TEMP_HIGH				0x71   
-#define ERROR_LOGIC_LOW				0x72   
-#define ERROR_LOGIC_HIGH			0x73   
-#define ERROR_MOTOR_V_LOW			0x74   
-#define ERROR_MOTOR_V_HIGH			0x75    
-#define ERROR_CABLE_BREAK			0x76		// common 
-//old included 
-#define	INFO_NO_FREE_SPACE			0x02
-#define INFO_PROGRAM_END			0x1F     
-#define INFO_TRIGGER				0x40				//0x0040
-#define INFO_READY					0x41				//0x0041	 
-#define INFO_GUI_CONNECTED			0x42                //0x0042    
-#define INFO_GUI_DISCONNECTED		0x43                //0x0043     
-#define INFO_PROGRAM				0x44
-#define ERROR_MOTOR_TEMP			0x78
-#define ERROR_HARD_LOW				0xE2
-#define ERROR_HARD_HIGH				0xE3
-//new included
-#define ERROR_MATH					0xEC
-#define ERROR_OVERSHOOT				0x82
-#define ERROR_RESOLVER_CHECK_FAILED	0xEB 
-#define INFO_UNKNOWN_AXIS_INDEX		0x11
-#define ERROR_HARDWARE_VERSION		0x83 
-
-/************************
-Const
-*************************/
-#define MSG_MASTER_TO_SLAVE			0x0500
-#define MSG_SLAVE_TO_MASTER			0x0700
-#define MSG_ERROR					0x0300
-#define GET_ID 0x00FF
-#define EMPTY_Q 32
-#define UNKNOWN_MSG 90
-#define OUT_OF_Q 91
-#define RX_TIME_OUT 92
-#define PARSE_SUCCESS 93
-#define FRAGGING 94
-#define	REFERENCE_FAIL 95
-#define	CMD_STOP_FAIL 96
-#define	ACK_FAIL 96
-#define EVENT_REACHED 97
-#define EVENT_NULL 98
+const uint16_t kMsgMasterToSlave = 0x0500; 
+const uint16_t kMsgSlaveToMaster = 0x0700;
+const uint16_t kMsgError = 0x3000;
+const uint16_t kGetID = 0x00FF;
+const uint8_t kEmptyQueue = 0xF0;
+const uint8_t kUnknownMsg = 0xF1;
+const uint8_t kOutOfQueue = 0xF2; 
+const uint8_t kRxTimeOut = 0xF3; 
+const uint8_t kParseSuccess = 0xF4;
+const uint8_t kFragging = 0xF5; 
+const uint8_t kReferenceFail = 0xF6;
+const uint8_t kStopFail = 0xF7;
+const uint8_t kAcknowledgeFail = 0xF8; 
+const uint8_t kEventReached = 0xF9; 
+const uint8_t kEventNull = 0xFA; 
+const uint8_t kModuleNumber = 8;
+const uint8_t kIDStart = 8;
+const uint8_t kIDEnd = 15;
+const uint8_t kOffset = 8;      // to be  modified 
 
 
-
-
-
-/******************
-variables: buffers & flags
-*******************/
-
-
-#define	MODULE_NUM			8	
-#define ID_START			8
-#define ID_END				15
-#define OFFSET				8			// to be  modified 
-
-
-extern  MODULE	module[MODULE_NUM]; 
+extern  MODULE  module[MODULE_NUM]; 
 
 class SMP
 {
-public:
-	SMP();			// Module_Initializaation; Open_Thread;   
-	~SMP();			// Close_Thread 
-	// MODULE	module[MODULE_NUM];
-	// MOVING CMD
-	NTCAN_RESULT	CMD_GET_STATE(int index, float time, uint8_t mode);   // mode: 01-pos; 02-vel; 04-cur
-	NTCAN_RESULT	CMD_REFERENCE(int index);
-	NTCAN_RESULT	CMD_STOP(int index);
-	NTCAN_RESULT	CMD_EMERGENCY_STOP(int index);
-	NTCAN_RESULT	CMD_ACK(int index); 
+  public:
+    SMP();      // Module_Initializaation; Open_Thread;   
+    ~SMP();     // Close_Thread 
+    // communication functions
+    NTCAN_RESULT StartCANBusComm(); // start communication
+    NTCAN_RESULT CloseCANBusComm(); // close communication
+    NTCAN_RESULT SetMsgModule();
+    // commands 
+    NTCAN_RESULT GetState(int index, float time_interval, uint8_t mode);   // mode: 01-pos; 02-vel; 04-cur
+    NTCAN_RESULT Reference(int index);
+    NTCAN_RESULT Stop(int index);
+    NTCAN_RESULT EmergencyStop(int index);
+    NTCAN_RESULT Acknowledge(int index); 
+    NTCAN_RESULT MovePosition(int index, float pos); 
+    NTCAN_RESULT MovePosition(int index, float pos, float vel, float acc, float cur);
+    NTCAN_RESULT MoveVelocity(int index, float vel, float cur); 
+    NTCAN_RESULT SetTargetPosition(int index, float pos); 
+    NTCAN_RESULT SetTargetPositionRelative(int index, float posRel); 
+    NTCAN_RESULT SetTargetVelocity(int index, float vel); 
+    NTCAN_RESULT DeleteModule(); 
+    // high level functions
+    void CanPolling(); 
+    void EventHandling(); 
+    int ProcessNextMsg(int count, CMSG* cmsg); // parse next message in the buffer
+    int ParseFragmentMsg(int index);
+    // statio thread starting function
+    static unsigned __stdcall CanPollingThreadStart(void * p_this){
+      SMP* p_smp = (SMP*)p_this;
+      p_smp->CanPolling();
+      return 1;
+    }
+    static unsigned __stdcall EventHandlingThreadStart(void * p_this){
+      SMP* p_smp = (SMP*)p_this;
+      p_smp->EventHandling();
+      return 1;
+    }
+    // variables
 
-	NTCAN_RESULT	CMD_MOV_POS(int index);
-	NTCAN_RESULT	CMD_MOV_POS(int index, float pos); 
-	NTCAN_RESULT	CMD_MOV_POS(int index, float pos, float vel, float acc, float cur);
-	NTCAN_RESULT	CMD_MOV_VEL(int index, float vel, float cur); 
-	NTCAN_RESULT	SET_TARGET_POS(int index, float pos); 
-	NTCAN_RESULT	SET_TARGET_POS_REL(int index, float posRel); 
-	NTCAN_RESULT	SET_TARGET_VEL(int index, float vel); 
-	// NTCAN_RESULT	SET_TARGET_VEL(int index, float vel); 
+    CRITICAL_SECTION critical_section_; 
 
-	// threads: point & ON/OFF
-	void			threadOpen();
-	void			threadClose(); 
-	HANDLE			pThreadPolling;			
-	HANDLE			pThreadHandling;
-	static unsigned __stdcall canPollingThreadStartUp(void * pThis){
-		SMP* pSMP = (SMP*)pThis;
-		pSMP->canPolling();
-		return 1;
-	}
-	static unsigned __stdcall eventThreadStartUp(void * pThis){
-		SMP* pSMP = (SMP*)pThis;
-		pSMP->eventHandling();
-		return 1;
-	}
-		
+  private: 
+    Module module_[kModuleNumber];
+    NTCAN_HANDLE can_bus_handle_; 
+    HANDLE can_polling_thread_handle; 
+    HANDLE event_handling_thread_handle;  
+    uint32_t baud_rate_;
+    uint8_t buffer_size_;
+    CMSG* polling_buffer_;    // MSG Read from module; 
+    CMSG** fragment_buffer_; 
+    int* fragment_length_; // fragment length of each bin
 
-	// threads specific: polling & handling 
-	void			canON(); 
-	void			canOFF(); 
-	void			canPolling(); 
-	int				canMsgPoll(); 
-	int				procNextMsg(int count, CMSG* cmsg); // parse next message in the buffer
-	int				parseFragMsg(int index);
-	
-	void			eventHandling(); 
-	
-
-
-protected: 
-	NTCAN_HANDLE		handle; 
-	uint32_t			baud;
-    // buffers & stacks 
-	uint8_t				*pos_buffer;
-	uint8_t				*pos_rel_buffer; 
-	uint8_t				*vel_buffer;
-	uint8_t				*cur_buffer;
-	CMSG				pollBuf[40];		// MSG Read from module; 
-	CMSG				fragBuf[8][40];	
-	int					fragLen[8];
-	CRITICAL_SECTION	cSec; 
-	bool				canCommActive;
-	bool				canPollActive;
-	bool				eventActive; 
+    bool can_bus_active_;
+    bool can_bus_polling_;
+    bool event_handling_; 
 
 
-	void			errorHandler(int index); 
+    void      errorHandler(int index); 
 
-	void			enableCanComm();
-	void			disableCanComm();
-	void			enableCanPoll();
-	void			disableCanPoll();
-	void			enableEventHandle(); 
-	void			disableEventHandle(); 
- 
+    void EnableCanComm();
+    void DisableCanComm();
+    void EnableCanPoll();
+    void DisableCanPoll();
+    void EnableEventHandle(); 
+    void DisableEventHandle(); 
+    void Float2Bit(float float_num, uint8_t* bit_num);
+    float Bit2Float(uint8_t* bit_num);
 
-	void			float2Bit(float float_num, uint8_t* bit_num);
-	float			bit2Float(uint8_t* bit_num);
-
-private: 
-
-	NTCAN_HANDLE	canConnect(uint32_t baud);
-	NTCAN_RESULT	canDisconnect(); 
-	NTCAN_RESULT	canModuleIdAdd(); 
-	NTCAN_RESULT	canModuleIdDelete(); 
-	
 }; 

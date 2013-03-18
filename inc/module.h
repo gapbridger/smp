@@ -1,59 +1,62 @@
 #include "ntcan.h"
 
-using namespace std; 
+using std::cout; 
+using std::endl;
 
-#define TRUE_REFERENCED		0x01     // |
-#define TRUE_MOVING			0x02
-#define TRUE_ERROR			0x10
-#define TRUE_BRAKE			0x20
-#define TRUE_MOV_END		0x40
-#define TRUE_POS_REACHED	0x80
+// using one set
+const uint8_t kReferencedTrue = 0x01;
+const uint8_t kMoveingTrue = 0x02;
+const uint8_t kErrorTrue = 0x10;
+const uint8_t kBrakeTrue = 0x20;
+const uint8_t kMoveEndTrue = 0x40;
+const uint8_t kPositionReachedTrue = 0x80;
 
-#define FALSE_REFERENCED	0xFE    // &
-#define FALSE_MOVING		0xFD
-#define FALSE_ERROR			0xEF
-#define FALSE_BRAKE			0xDF
-#define FALSE_MOV_END		0xBF
-#define FALSE_POS_REACHED	0x7F
+const uint8_t kReferencedFalse = 0xFE;
+const uint8_t kMovingFalse = 0xFD;
+const uint8_t kErrorFalse = 0xEF;
+const uint8_t kBrakeFalse = 0xDF;
+const uint8_t kMoveEndFalse = 0xBF;
+const uint8_t kPositionReachedFalse = 0x7F;
 
-class MODULE
+class Module
 {
 public: 
-	MODULE(); 
-	~MODULE(); 
-	void	setId(int32_t _id); 
-	void	setStatusCode(uint8_t _statusCode); 
-	void	setErrorCode(uint8_t errorCode); 
-	void	setMode(uint8_t _mode); 
-	void	updatePos(float _pos); 
-	void    updateVel(float _vel); 
-	void	updateAcc(float _acc); 
-	void	updateCur(float _cur); 
-
-	int32_t	getId(); 
-	uint8_t getStatusCode(); 
-	uint8_t	getErrorCode(); 
-	uint8_t	getMode();    // mode: para. in CMD_GET_STATE
-	float	getPos(); 
-	float	getVel(); 
-	float	getAcc(); 
-	float	getCur(); 
-
-	bool	checkReferenced();
-	bool	checkMoving(); 
-	bool	checkError(); 
-	bool	checkBrake(); 
-	bool	checkMoveEnd(); 
-	bool	checkPosReached(); 
+    // constructors
+	Module(); 
+	~Module(); 
+    // mutators
+	void set_id(int32_t id); 
+	void set_status_code(uint8_t status_code); 
+	void sat_error_code(uint8_t error_code); 
+	void set_mode(uint8_t mode); 
+	void set_position(float position); 
+	void set_velocity(float velocity); 
+	void set_acceleration(float acceleration); 
+	void set_current(float current); 
+    // accessors
+	int32_t	id() const; 
+	uint8_t status_code() const; 
+	uint8_t	error_code() const; 
+	uint8_t	mode() const;    // mode: para. in CMD_GET_STATE
+	float position() const; 
+	float velocity() const; 
+	float acceleration() const; 
+	float current() const; 
+    // check status
+	bool CheckReferenced() const;
+	bool CheckMoving() const; 
+	bool CheckError() const; 
+	bool CheckBrake() const; 
+	bool CheckMoveEnd() const; 
+	bool CheckPositionReached() const; 
 
 private:
-	int32_t	id;				
-	uint8_t	statusCode;			// Byte of status 8-bit 
-	uint8_t	errorCode;		// Byte of error type
-	uint8_t	mode;
-
-	float	pos;		
-	float	vel;		
-	float	cur;
-	float	acc; 		
+	int32_t	id_;				
+    uint8_t	mode_;
+	uint8_t	status_code_; // Byte of status 8-bit 
+	uint8_t	error_code_; // Byte of error type
+	float position_;		
+	float velocity_;		
+	float current_;
+	float acceleration_; 		
 };  
