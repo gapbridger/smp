@@ -2,8 +2,7 @@
 #include <windows.h>
 #include <process.h>
 #include <iostream>
-#include <vector>
-#include "Module.h"
+#include "module.h"
 
 // command code list
 
@@ -17,10 +16,10 @@ const uint8_t kGetState = 0x95;
 const uint8_t kGetDetailedErrorInfo = 0x96;
 const uint8_t kSetConfig = 0x81;
 const uint8_t kGetConfig = 0x80;
-const uint8_t kCommandError = 0x88;
-const uint8_t kCommandWarning = 0x89;
-const uint8_t kCommandInfo = 0x8A;
-const uint8_t kCommandAcknowledge = 0x8B;
+const uint8_t kError = 0x88;
+const uint8_t kWarning = 0x89;
+const uint8_t kInfo = 0x8A;
+const uint8_t kAcknowledge = 0x8B;
 const uint8_t kMovePosition = 0xB0;
 const uint8_t kMovePositionTime = 0xB1;
 const uint8_t kMoveCurrent = 0xB3;
@@ -52,8 +51,8 @@ const uint8_t kInfoFailed = 0x05;
 const uint8_t kInfoNotReferenced = 0x06;
 const uint8_t kInfoSearchSineVector = 0x07; // 0x0007
 const uint8_t kInfoNoErrors = 0x08; // 0x0008
-const uint8_t kCommunicatonError = 0x09;
-const uint8_t kInfoTimeOuti = 0x10;
+const uint8_t kCommunicationError = 0x09;
+const uint8_t kInfoTimeOut = 0x10;
 const uint8_t kInfoWrongBaudRate = 0x16;  
 const uint8_t kInfoCheckSum = 0x19;
 const uint8_t kInfoMessageLength = 0x1D;
@@ -98,12 +97,14 @@ const uint8_t kErrorOverShoot = 0x82;
 const uint8_t kErrorResolverCheckFailed = 0xEB;
 const uint8_t kInfoUnknownAxisIndex = 0x11;
 const uint8_t kErrorHardwareVersion = 0x83;
+const uint8_t kOK1 = 0x4F;
+const uint8_t kOK2 = 0x4B;
 
 // other constant
 
 const uint16_t kMsgMasterToSlave = 0x0500; 
 const uint16_t kMsgSlaveToMaster = 0x0700;
-const uint16_t kMsgError = 0x3000;
+const uint16_t kMsgError = 0x0300;
 const uint16_t kGetID = 0x00FF;
 const uint8_t kEmptyQueue = 0xF0;
 const uint8_t kUnknownMsg = 0xF1;
@@ -120,41 +121,43 @@ const uint8_t kModuleNumber = 8;
 const uint8_t kIDStart = 8;
 const uint8_t kIDEnd = 15;
 const uint8_t kOffset = 8;      // to be  modified 
+const uint8_t kBufferLength = 100;
 
-
-extern  MODULE  module[MODULE_NUM]; 
 
 class SMP
 {
   public:
-    SMP();      // Module_Initializaation; Open_Thread;   
-    ~SMP();     // Close_Thread 
+    SMP();      // constructor   
+    ~SMP();     // desctructor 
     // communication functions
     NTCAN_RESULT StartCANBusComm(); // start communication
     NTCAN_RESULT CloseCANBusComm(); // close communication
-    NTCAN_RESULT SetMsgModule();
+    NTCAN_RESULT SetMsgModules(int add_delete_flag);
+	int ProcessBufferMsg(CMSG* cmsg, const int length); // parse next message in the buffer
+    int ParseFragmentMsg(int module_idx);
+	void OpenThreads();
+	void CloseThreads();
+	void Enable(bool* pt_variable);
+    void Disable(bool* pt_variable);
+    // high level functions
+    void CANPolling(); 
+    void EventHandling(); ;
     // commands 
     NTCAN_RESULT GetState(int index, float time_interval, uint8_t mode);   // mode: 01-pos; 02-vel; 04-cur
     NTCAN_RESULT Reference(int index);
     NTCAN_RESULT Stop(int index);
     NTCAN_RESULT EmergencyStop(int index);
     NTCAN_RESULT Acknowledge(int index); 
-    NTCAN_RESULT MovePosition(int index, float pos); 
-    NTCAN_RESULT MovePosition(int index, float pos, float vel, float acc, float cur);
-    NTCAN_RESULT MoveVelocity(int index, float vel, float cur); 
+    NTCAN_RESULT MovePosition(int index, float position); 
+    NTCAN_RESULT MovePosition(int index, float position, float velocity, float acceleration, float current);
+    NTCAN_RESULT MoveVelocity(int index, float velocity, float current); 
     NTCAN_RESULT SetTargetPosition(int index, float pos); 
     NTCAN_RESULT SetTargetPositionRelative(int index, float posRel); 
     NTCAN_RESULT SetTargetVelocity(int index, float vel); 
-    NTCAN_RESULT DeleteModule(); 
-    // high level functions
-    void CanPolling(); 
-    void EventHandling(); 
-    int ProcessNextMsg(int count, CMSG* cmsg); // parse next message in the buffer
-    int ParseFragmentMsg(int index);
     // statio thread starting function
-    static unsigned __stdcall CanPollingThreadStart(void * p_this){
+    static unsigned __stdcall CANPollingThreadStart(void * p_this){
       SMP* p_smp = (SMP*)p_this;
-      p_smp->CanPolling();
+      p_smp->CANPolling();
       return 1;
     }
     static unsigned __stdcall EventHandlingThreadStart(void * p_this){
@@ -162,35 +165,30 @@ class SMP
       p_smp->EventHandling();
       return 1;
     }
-    // variables
-
-    CRITICAL_SECTION critical_section_; 
+	// other functions
+    void ErrorHandling(int index); 
+    void FloatToBytes(float float_num, uint8_t* bit_num);
+    float BytesToFloat(uint8_t* bit_num);
+	float GetPosition(int module_idx);
+	float GetVelocity(int module_idx);
+	float GetCurrent(int module_idx);
+	float GetAcceleration(int module_idx);
 
   private: 
     Module module_[kModuleNumber];
     NTCAN_HANDLE can_bus_handle_; 
-    HANDLE can_polling_thread_handle; 
-    HANDLE event_handling_thread_handle;  
+    HANDLE can_polling_thread_handle_; 
+    HANDLE event_handling_thread_handle_;  
+    CRITICAL_SECTION critical_section_; 
     uint32_t baud_rate_;
-    uint8_t buffer_size_;
-    CMSG* polling_buffer_;    // MSG Read from module; 
-    CMSG** fragment_buffer_; 
-    int* fragment_length_; // fragment length of each bin
-
-    bool can_bus_active_;
+    uint8_t position_bytes_[4];
+    uint8_t velocity_bytes_[4];
+    uint8_t acceleration_bytes_[4];
+    uint8_t current_bytes_[4];
+    uint8_t time_bytes_[4];
+    CMSG polling_buffer_[kBufferLength];    // MSG Read from module; 
+    CMSG fragment_buffer_[kModuleNumber][kBufferLength]; 
+    int fragment_length_[kModuleNumber]; // fragment length of each bin
     bool can_bus_polling_;
     bool event_handling_; 
-
-
-    void      errorHandler(int index); 
-
-    void EnableCanComm();
-    void DisableCanComm();
-    void EnableCanPoll();
-    void DisableCanPoll();
-    void EnableEventHandle(); 
-    void DisableEventHandle(); 
-    void Float2Bit(float float_num, uint8_t* bit_num);
-    float Bit2Float(uint8_t* bit_num);
-
 }; 

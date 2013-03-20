@@ -1,8 +1,7 @@
 #include <iostream>
 #include "module.h"
 
-using std::cout; 
-using std::endl;
+using namespace std;
 
 /****************
 Data struct Module
@@ -13,8 +12,8 @@ Data struct Module
 Module::Module(){
     id_ = 0;
     mode_ = 0x00;
-    status_code = 0x00;
-    error_code = 0x00;
+    status_code_ = 0x00;
+    error_code_ = 0x00;
     position_ = 0;
     velocity_ = 0;
     current_ = 0;
@@ -40,78 +39,81 @@ void Module::set_mode(uint8_t mode){
 	mode_ = mode; 
 }
 
-void Module::set_position(float position)
-{
+void Module::set_position(float position){
 	position_ = position; 
 }
 
-void Module::set_velocity(float velocity)
-{
+void Module::set_velocity(float velocity){
 	velocity_ = velocity; 
 }
 
-void Module::set_acceleration(float acceleration)
-{
+void Module::set_acceleration(float acceleration){
 	acceleration_ = acceleration; 
 }
 
-void Module::set_current(float current)
-{
+void Module::set_current(float current){
 	current_ = current; 
 }
 
-int32_t	Module::id(){
+void Module::set_time_required(float time){
+  time_required_ = time;
+}
+int32_t	Module::id() const{
 	return id_; 
 }
 
-uint8_t Module::status_code(){
+uint8_t Module::status_code() const{
 	return status_code_; 
 }
 
-uint8_t	Module::error_code(){
-	return error_code; 
+uint8_t	Module::error_code() const{
+	return error_code_; 
 }
 
-uint8_t Module::mode(){
+uint8_t Module::mode() const{
 	return mode_; 
 }
 
-float Module::position(){
+float Module::position() const{
 	return position_; 
 }
 
-float Module::velocity(){
+float Module::velocity() const{
 	return velocity_; 
 }
 
-float Module::acceleration(){
+float Module::acceleration() const{
 	return acceleration_; 
 }
 
-float Module::current(){
+float Module::current() const{
 	return current_; 
 }
 
-bool Module::CheckReferenced(){
-	return (status_code_ & kReferencedTrue == 1) ? true : false; 
+float Module::time_required() const{
+  return time_required_;
+}
+
+bool Module::CheckReferenced() const{
+	return ((status_code_ & kReferencedTrue) == 1) ? true : false; 
 } 
 
-bool Module::CheckMoving(){
-    return (status_code_ & kMovingTrue ==1) ? true : false;
+bool Module::CheckMoving() const{
+    return ((status_code_ & kMovingTrue) ==1) ? true : false;
 } 
 
-bool Module::CheckError(){
-    return (status_code_ & kErrorTrue == 1) ? true : false;
+bool Module::CheckError() const{
+    return ((status_code_ & kErrorTrue) == 1) ? true : false;
 } 
 
-bool Module::CheckBrake(){
-    return (status_code_ & kBrakeTrue == 1) ? true : false;
+bool Module::CheckBrake() const{
+    return ((status_code_ & kBrakeTrue) == 1) ? true : false;
 } 
 
-bool Module::CheckMoveEnd(){
-    return (status_code_ & kMoveEndTrue == 1) ? true : false;
+bool Module::CheckMoveEnd() const{
+    return ((status_code_ & kMoveEndTrue) == 1) ? true : false;
 } 
 
-bool Module::CheckPosReached(){
-    return (status_code_ & kPositionReachedTrue == 1) ? true : false;
+bool Module::CheckPositionReached() const{
+    return ((status_code_ & kPositionReachedTrue) == 1) ? true : false;
 } 
