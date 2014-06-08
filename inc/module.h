@@ -1,3 +1,6 @@
+#ifndef MODULE_H
+#define MODULE_H
+
 #include "ntcan.h"
 
 // using one set
@@ -59,3 +62,5 @@ private:
 	float acceleration_; 		
 	float time_required_;
 };  
+
+#endif
