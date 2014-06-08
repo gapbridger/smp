@@ -12,6 +12,8 @@ Schunk Motion Protocol
 
 // constructor
 
+// test...
+
 SMP::SMP()
 {
 	// allocate memory for vectors...		
