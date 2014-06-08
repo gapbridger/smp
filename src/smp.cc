@@ -1,7 +1,5 @@
 #include <iostream>
-#include "stdafx.h"
-#include "smp.h"
-using namespace std; 
+#include "../inc/smp.h"
 
 /*****************
   Schunk Motion Protocol
@@ -15,28 +13,28 @@ using namespace std;
 // constructor
 
 SMP::SMP(){
-  // uint8_t status_init = 0xE1, error_init = 0x00, mode_init = 0x07; 
-  int module_idx = 0; 
-  // it seems that we don't need this...
-  for(int32_t i = kIDStart; i <= kIDEnd; i++){
-    module_[module_idx].set_id(i);
-    module_[module_idx].set_error_code(0x00);
-    module_[module_idx].set_mode(0x00); 
-    module_[module_idx].set_position(0.0); 
-    module_[module_idx].set_velocity(0.0); 
-    module_[module_idx].set_acceleration(0.0);
-    module_[module_idx].set_current(0.0); 
-    module_idx++; 
-  }
-  can_bus_handle_ = NULL; 
-  can_polling_thread_handle_ = NULL;
-  event_handling_thread_handle_ = NULL;
-  baud_rate_ = NTCAN_BAUD_1000; 
-  for(int i = 0; i < kModuleNumber; i++)
-    fragment_length_[i]=0; 
-  InitializeCriticalSection(&critical_section_);
-  can_bus_polling_ = false;
-  event_handling_ = false;
+	// uint8_t status_init = 0xE1, error_init = 0x00, mode_init = 0x07; 	
+	// it seems that we don't need this...
+	num_module_ = kIDEnd - kIDStart + 1;
+	module_ = std::vector<Module>(num_module_);
+	for(int32_t idx = kIDStart - kOffset; idx <= kIDEnd - kOffset; idx++){		
+		module_[idx].set_id(idx + kOffset);
+		module_[idx].set_error_code(0x00);
+		module_[idx].set_mode(0x00); 
+		module_[idx].set_position(0.0); 
+		module_[idx].set_velocity(0.0); 
+		module_[idx].set_acceleration(0.0);
+		module_[idx].set_current(0.0); 	
+	}
+	can_bus_handle_ = NULL; 
+	can_polling_thread_handle_ = NULL;
+	event_handling_thread_handle_ = NULL;
+	baud_rate_ = NTCAN_BAUD_1000; 
+	for(int i = 0; i < kModuleNumber; i++)
+	fragment_length_[i]=0; 
+	InitializeCriticalSection(&critical_section_);
+	can_bus_polling_ = false;
+	event_handling_ = false;
 }
 
 SMP::~SMP(){

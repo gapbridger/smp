@@ -1,11 +1,15 @@
-#include "ntcan.h"
-#include <windows.h>
-#include <process.h>
+#ifndef SMP_H
+#define SMP_H
+
+#include <ntcan.h>
 #include <iostream>
-#include "module.h"
+#include <boost/thread/thread.hpp>
+#include <vector>
+#include <queue>
+#include "../inc/module.h"
+
 
 // command code list
-
 const uint8_t kStop = 0x91;
 const uint8_t kEmergencyStop = 0x90;
 const uint8_t kReference = 0x92;
@@ -101,7 +105,6 @@ const uint8_t kOK1 = 0x4F;
 const uint8_t kOK2 = 0x4B;
 
 // other constant
-
 const uint16_t kMsgMasterToSlave = 0x0500; 
 const uint16_t kMsgSlaveToMaster = 0x0700;
 const uint16_t kMsgError = 0x0300;
@@ -154,17 +157,7 @@ class SMP
     NTCAN_RESULT SetTargetPosition(int index, float pos); 
     NTCAN_RESULT SetTargetPositionRelative(int index, float posRel); 
     NTCAN_RESULT SetTargetVelocity(int index, float vel); 
-    // statio thread starting function
-    static unsigned __stdcall CANPollingThreadStart(void * p_this){
-      SMP* p_smp = (SMP*)p_this;
-      p_smp->CANPolling();
-      return 1;
-    }
-    static unsigned __stdcall EventHandlingThreadStart(void * p_this){
-      SMP* p_smp = (SMP*)p_this;
-      p_smp->EventHandling();
-      return 1;
-    }
+    
 	// other functions
     void ErrorHandling(int index); 
     void FloatToBytes(float float_num, uint8_t* bit_num);
@@ -174,21 +167,42 @@ class SMP
 	float GetCurrent(int module_idx);
 	float GetAcceleration(int module_idx);
 
-  private: 
-    Module module_[kModuleNumber];
-    NTCAN_HANDLE can_bus_handle_; 
-    HANDLE can_polling_thread_handle_; 
-    HANDLE event_handling_thread_handle_;  
-    CRITICAL_SECTION critical_section_; 
-    uint32_t baud_rate_;
-    uint8_t position_bytes_[4];
-    uint8_t velocity_bytes_[4];
-    uint8_t acceleration_bytes_[4];
-    uint8_t current_bytes_[4];
-    uint8_t time_bytes_[4];
-    CMSG polling_buffer_[kBufferLength];    // MSG Read from module; 
-    CMSG fragment_buffer_[kModuleNumber][kBufferLength]; 
-    int fragment_length_[kModuleNumber]; // fragment length of each bin
-    bool can_bus_polling_;
-    bool event_handling_; 
+private: 
+	std::vector<Module> module_;
+	std::queue<CMSG> can_msg_buffer_;
+	std::vector<std::queue<CMSG>> fragment_buffer_;
+	// Module module_[kModuleNumber];
+	NTCAN_HANDLE can_bus_handle_; 
+	HANDLE can_polling_thread_handle_; 
+	HANDLE event_handling_thread_handle_;  
+	CRITICAL_SECTION critical_section_; 
+	uint32_t baud_rate_;
+	uint8_t position_bytes_[4];
+	uint8_t velocity_bytes_[4];
+	uint8_t acceleration_bytes_[4];
+	uint8_t current_bytes_[4];
+	uint8_t time_bytes_[4];
+	// CMSG polling_buffer_[kBufferLength];    // MSG Read from module; 
+	CMSG fragment_buffer_[kModuleNumber][kBufferLength]; 
+	int fragment_length_[kModuleNumber]; // fragment length of each bin
+	bool can_bus_polling_;
+	bool event_handling_; 
+
+	int num_module_;
 }; 
+
+#endif
+
+
+// statio thread starting function
+//static unsigned __stdcall CANPollingThreadStart(void * p_this){
+//    SMP* p_smp = (SMP*)p_this;
+//    p_smp->CANPolling();
+//    return 1;
+//}
+//
+//static unsigned __stdcall EventHandlingThreadStart(void * p_this){
+//    SMP* p_smp = (SMP*)p_this;
+//    p_smp->EventHandling();
+//    return 1;
+//}

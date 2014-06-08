@@ -1,5 +1,5 @@
 #include <iostream>
-#include "module.h"
+#include "../inc/module.h"
 
 using namespace std;
 
