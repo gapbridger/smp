@@ -17,8 +17,7 @@ void main()
 	{
 		pos_sequence[0][i] = i % 2 == 0 ? -5 : 5;
 		pos_sequence[1][i] = i % 2 == 0 ? 40 : 50;
-		pos_sequence[2][i] = i % 2 == 0 ? 70 : 80;
-		// pos_sequence[2][i] = i % 2 == 0 ? 70 : 80;
+		pos_sequence[2][i] = i % 2 == 0 ? 70 : 80;		
 	}
 	SMP smp;
 	smp.StartCANBusComm();
@@ -27,12 +26,8 @@ void main()
 	for(int i = 0; i < num_joints; i++)
 		smp.GetState(module_idx[i], 0.04, 0x07);
 
-	smp.CANPollingStart();
-	// smp.MovePosSequenceStart();	
-	boost::thread thread(boost::bind(&MovePositionSequence, module_idx, pos_sequence, &smp));
-	/*smp.MovePosition(0, 0, 5.0, 20.0, 9.99);
-	smp.MovePosition(3, 45, 5.0, 20.0, 6.0);
-	smp.MovePosition(5, 75, 5.0, 20.0, 4.0);*/
+	smp.CANPollingStart();	
+	boost::thread thread(boost::bind(&MovePositionSequence, module_idx, pos_sequence, &smp));	
 	thread.join();
 	smp.CANPollingStop();	
 	
