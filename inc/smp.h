@@ -6,6 +6,7 @@
 #include <vector>
 #include "../inc/module.h"
 #include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/timer/timer.hpp>
 
 // command code list
@@ -129,7 +130,6 @@ const uint8_t kBufferLength = 100;
 const uint8_t kNumBytesPerDigit = 4;
 const uint8_t kNumBytesPerCMSG = 8;
 
-
 class SMP
 {
 public:
@@ -140,6 +140,11 @@ public:
 	NTCAN_RESULT CloseCANBusComm(); // close communication
 	NTCAN_RESULT ConfigureModules(int add_delete_flag);
 	void CANPolling(); 
+	void CANPollingStart();
+	void CANPollingStop();
+	void MovePositionSequence();
+	void MovePosSequenceStart();
+	void MovePosSequenceStop();
 	void ProcessBufferMessage(CMSG* cmsg_buffer, int length); // parse next message in the buffer
 	int ParseFragmentMessage(int module_idx);	
 	// commands 
@@ -154,6 +159,7 @@ public:
 	NTCAN_RESULT SetTargetPosition(int index, float pos); 
 	NTCAN_RESULT SetTargetPositionRelative(int index, float posRel); 
 	NTCAN_RESULT SetTargetVelocity(int index, float vel); 
+	
 
 	// other functions
 	void ErrorHandling(int index); 
@@ -163,36 +169,19 @@ public:
 	float GetVelocity(int module_idx);
 	float GetCurrent(int module_idx);
 	float GetAcceleration(int module_idx);
-
+	void set_can_bus_polling(int flag_value);
+	bool PositionReached(int module_idx);
+	
+	
 private: 
 	Module module_[kModuleNumber];
 	NTCAN_HANDLE can_bus_handle_; 	
-	uint32_t baud_rate_;
-	uint8_t position_bytes_[kNumBytesPerDigit];
-	uint8_t velocity_bytes_[kNumBytesPerDigit];
-	uint8_t acceleration_bytes_[kNumBytesPerDigit];
-	uint8_t current_bytes_[kNumBytesPerDigit];
-	uint8_t time_bytes_[kNumBytesPerDigit];
+	uint32_t baud_rate_;	
 	// buffers...
 	CMSG polling_buffer_[kBufferLength];    // MSG Read from module; 
-	std::vector<std::vector<CMSG>> fragment_buffer_; // [kModuleNumber][kBufferLength]; 
-	boost::shared_ptr<boost::thread> thread_;
-	boost::mutex mutex_;
-	int can_bus_polling_;
-	// boost::timer::cpu_timer timer_;
-
-	// HANDLE can_polling_thread_handle_; 
-	// HANDLE event_handling_thread_handle_;  
-	// CRITICAL_SECTION critical_section_; 
-	// int fragment_length_[kModuleNumber]; // fragment length of each bin
-	
-	// bool event_handling_; 
-	/*void OpenThreads();
-	void CloseThreads();
-	void Enable(bool* pt_variable);
-	void Disable(bool* pt_variable);*/
-	// high level functions	
-	// void EventHandling();
+	std::vector<std::vector<CMSG>> fragment_buffer_; // [kModuleNumber][kBufferLength]; 	
+	boost::shared_ptr<boost::thread> polling_thread_;		
+	int can_bus_polling_;	
 };
 
 #endif
@@ -209,3 +198,9 @@ private:
 //    p_smp->EventHandling();
 //    return 1;
 //}
+
+/*uint8_t position_bytes_[kNumBytesPerDigit];
+	uint8_t velocity_bytes_[kNumBytesPerDigit];
+	uint8_t acceleration_bytes_[kNumBytesPerDigit];
+	uint8_t current_bytes_[kNumBytesPerDigit];
+	uint8_t time_bytes_[kNumBytesPerDigit];*/
