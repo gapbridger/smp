@@ -1,8 +1,13 @@
+#ifndef SMP_H
+#define SMP_H
+
 #include "ntcan.h"
-#include <windows.h>
-#include <process.h>
 #include <iostream>
-#include "module.h"
+#include <vector>
+#include "source/inc/module.h"
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/timer/timer.hpp>
 
 // command code list
 
@@ -122,73 +127,80 @@ const uint8_t kIDStart = 8;
 const uint8_t kIDEnd = 15;
 const uint8_t kOffset = 8;      // to be  modified 
 const uint8_t kBufferLength = 100;
-
+const uint8_t kNumBytesPerDigit = 4;
+const uint8_t kNumBytesPerCMSG = 8;
 
 class SMP
 {
-  public:
-    SMP();      // constructor   
-    ~SMP();     // desctructor 
-    // communication functions
-    NTCAN_RESULT StartCANBusComm(); // start communication
-    NTCAN_RESULT CloseCANBusComm(); // close communication
-    NTCAN_RESULT SetMsgModules(int add_delete_flag);
-	int ProcessBufferMsg(CMSG* cmsg, const int length); // parse next message in the buffer
-    int ParseFragmentMsg(int module_idx);
-	void OpenThreads();
-	void CloseThreads();
-	void Enable(bool* pt_variable);
-    void Disable(bool* pt_variable);
-    // high level functions
-    void CANPolling(); 
-    void EventHandling(); ;
-    // commands 
-    NTCAN_RESULT GetState(int index, float time_interval, uint8_t mode);   // mode: 01-pos; 02-vel; 04-cur
-    NTCAN_RESULT Reference(int index);
-    NTCAN_RESULT Stop(int index);
-    NTCAN_RESULT EmergencyStop(int index);
-    NTCAN_RESULT Acknowledge(int index); 
-    NTCAN_RESULT MovePosition(int index, float position); 
-    NTCAN_RESULT MovePosition(int index, float position, float velocity, float acceleration, float current);
-    NTCAN_RESULT MoveVelocity(int index, float velocity, float current); 
-    NTCAN_RESULT SetTargetPosition(int index, float pos); 
-    NTCAN_RESULT SetTargetPositionRelative(int index, float posRel); 
-    NTCAN_RESULT SetTargetVelocity(int index, float vel); 
-    // statio thread starting function
-    static unsigned __stdcall CANPollingThreadStart(void * p_this){
-      SMP* p_smp = (SMP*)p_this;
-      p_smp->CANPolling();
-      return 1;
-    }
-    static unsigned __stdcall EventHandlingThreadStart(void * p_this){
-      SMP* p_smp = (SMP*)p_this;
-      p_smp->EventHandling();
-      return 1;
-    }
+public:
+	SMP();      // constructor   
+	~SMP();     // desctructor 
+	// communication functions
+	NTCAN_RESULT StartCANBusComm(); // start communication
+	NTCAN_RESULT CloseCANBusComm(); // close communication
+	NTCAN_RESULT ConfigureModules(int add_delete_flag);
+	void CANPolling(); 
+	void CANPollingStart();
+	void CANPollingStop();
+	void MovePositionSequence();
+	void MovePosSequenceStart();
+	void MovePosSequenceStop();
+	void ProcessBufferMessage(CMSG* cmsg_buffer, int length); // parse next message in the buffer
+	int ParseFragmentMessage(int module_idx);	
+	// commands 
+	NTCAN_RESULT GetState(int index, float time_interval, uint8_t mode);   // mode: 01-pos; 02-vel; 04-cur
+	NTCAN_RESULT Reference(int index);
+	NTCAN_RESULT Stop(int index);
+	NTCAN_RESULT EmergencyStop(int index);
+	NTCAN_RESULT Acknowledge(int index); 
+	NTCAN_RESULT MovePosition(int index, float position); 
+	NTCAN_RESULT MovePosition(int index, float position, float velocity, float acceleration, float current);
+	NTCAN_RESULT MoveVelocity(int index, float velocity, float current); 
+	NTCAN_RESULT SetTargetPosition(int index, float pos); 
+	NTCAN_RESULT SetTargetPositionRelative(int index, float posRel); 
+	NTCAN_RESULT SetTargetVelocity(int index, float vel); 
+	
+
 	// other functions
-    void ErrorHandling(int index); 
-    void FloatToBytes(float float_num, uint8_t* bit_num);
-    float BytesToFloat(uint8_t* bit_num);
+	void ErrorHandling(int index); 
+	void FloatToBytes(float float_num, uint8_t* bit_num);
+	float BytesToFloat(uint8_t* bit_num);
 	float GetPosition(int module_idx);
 	float GetVelocity(int module_idx);
 	float GetCurrent(int module_idx);
 	float GetAcceleration(int module_idx);
+	void set_can_bus_polling(int flag_value);
+	bool PositionReached(int module_idx);
+	
+	
+private: 
+	Module module_[kModuleNumber];
+	NTCAN_HANDLE can_bus_handle_; 	
+	uint32_t baud_rate_;	
+	// buffers...
+	CMSG polling_buffer_[kBufferLength];    // MSG Read from module; 
+	std::vector<std::vector<CMSG>> fragment_buffer_; // [kModuleNumber][kBufferLength]; 	
+	boost::shared_ptr<boost::thread> polling_thread_;		
+	int can_bus_polling_;	
+};
 
-  private: 
-    Module module_[kModuleNumber];
-    NTCAN_HANDLE can_bus_handle_; 
-    HANDLE can_polling_thread_handle_; 
-    HANDLE event_handling_thread_handle_;  
-    CRITICAL_SECTION critical_section_; 
-    uint32_t baud_rate_;
-    uint8_t position_bytes_[4];
-    uint8_t velocity_bytes_[4];
-    uint8_t acceleration_bytes_[4];
-    uint8_t current_bytes_[4];
-    uint8_t time_bytes_[4];
-    CMSG polling_buffer_[kBufferLength];    // MSG Read from module; 
-    CMSG fragment_buffer_[kModuleNumber][kBufferLength]; 
-    int fragment_length_[kModuleNumber]; // fragment length of each bin
-    bool can_bus_polling_;
-    bool event_handling_; 
-}; 
+#endif
+
+
+//// statio thread starting function
+//static unsigned __stdcall CANPollingThreadStart(void * p_this){
+//    SMP* p_smp = (SMP*)p_this;
+//    p_smp->CANPolling();
+//    return 1;
+//}
+//static unsigned __stdcall EventHandlingThreadStart(void * p_this){
+//    SMP* p_smp = (SMP*)p_this;
+//    p_smp->EventHandling();
+//    return 1;
+//}
+
+/*uint8_t position_bytes_[kNumBytesPerDigit];
+	uint8_t velocity_bytes_[kNumBytesPerDigit];
+	uint8_t acceleration_bytes_[kNumBytesPerDigit];
+	uint8_t current_bytes_[kNumBytesPerDigit];
+	uint8_t time_bytes_[kNumBytesPerDigit];*/
